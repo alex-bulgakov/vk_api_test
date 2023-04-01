@@ -26,6 +26,7 @@ def vk_auth(login, password):
 
 # Функция поиска и сохранения результата в CSV файл
 def search_and_save(vk, group_checkboxes, query, start_date):
+    queries = query.split(',')
     selected_group_ids = [checkbox[1] for checkbox in group_checkboxes if checkbox[2].get()]
     posts = []
     for group_id in selected_group_ids:
@@ -42,13 +43,14 @@ def search_and_save(vk, group_checkboxes, query, start_date):
                         comments = vk.wall.getComments(owner_id=-group_id, post_id=post_id, count=100, sort='desc',
                                                        preview_length=0, extended=1)
                         for comment in comments['items']:
-                            if query in comment['text']:
-                                posts.append({
-                                    'post_id': post_id,
-                                    'id': comment['id'],
-                                    'from_id': comment['from_id'],
-                                    'text': comment['text']
-                                })
+                            for query in queries:
+                                if query.strip() in comment['text']:
+                                    posts.append({
+                                        'post_id': post_id,
+                                        'id': comment['id'],
+                                        'from_id': comment['from_id'],
+                                        'text': comment['text']
+                                    })
                     else:
                         break
                 else:
@@ -117,8 +119,8 @@ start_date_entry.pack()
 # end_date_entry = tk.Entry(root)
 # end_date_entry.pack()
 
-# search_button = tk.Button(root, text='Search', command=lambda: search_and_save(vk, group_checkboxes, search_entry.get(), datetime.strptime(start_date_entry.get(), '%d.%m.%Y'), datetime.strptime(end_date_entry.get(), '%d.%m.%Y')))
-search_button = tk.Button(root, text='Search', command=lambda: search_and_save(vk, group_checkboxes, 'что', datetime.strptime('01.03.2023', '%d.%m.%Y')))
+search_button = tk.Button(root, text='Search', command=lambda: search_and_save(vk, group_checkboxes, search_entry.get(), datetime.strptime(start_date_entry.get(), '%d.%m.%Y'), datetime.strptime(end_date_entry.get(), '%d.%m.%Y')))
+# search_button = tk.Button(root, text='Search', command=lambda: search_and_save(vk, group_checkboxes, 'привет, что, где, когда, а', datetime.strptime('01.03.2023', '%d.%m.%Y')))
 search_button.pack()
 
 root.mainloop()
