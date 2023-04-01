@@ -1,88 +1,73 @@
-import csv
 import tkinter as tk
 import vk_api
+from datetime import datetime, timedelta
 
-def start_search():
-    # получаем данные из полей ввода
-    login = login_entry.get()
-    password = password_entry.get()
-    search_text = search_text_entry.get()
+# Функция авторизации в VK API
 
-    # создаем сессию авторизации
-    vk_session = vk_api.VkApi(login, password)
+vk = None
+group_checkboxes = []
 
-    # пытаемся авторизоваться
+def vk_auth(login, password):
     try:
-        vk_session.auth(token_only=True)
+        global vk, group_checkboxes
+        # vk_session = vk_api.VkApi(login, password)
+        vk_session = vk_api.VkApi('+79182993975', 'fgkjfl84')
+        vk_session.auth()
+        vk = vk_session.get_api()
+        groups = vk.groups.get(extended=1, fields="name")["items"]
+        for group in groups:
+            group_checkboxes.append((group["name"], group["id"], tk.BooleanVar()))
+        for checkbox in group_checkboxes:
+            tk.Checkbutton(root, text=checkbox[0], variable=checkbox[2]).pack()
     except vk_api.AuthError as error_msg:
-        result_label.config(text='Ошибка авторизации')
-        return
+        print(error_msg)
 
-    # получаем доступ к API
-    vk = vk_session.get_api()
+# Функция поиска
+def search(vk, group_checkboxes, query, start_date, end_date):
+    selected_group_ids = [checkbox[1] for checkbox in group_checkboxes if checkbox[2].get()]
+    posts = []
+    for group_id in selected_group_ids:
+        posts.extend(vk.wall.search(owner_id=-group_id, query=query, count=100, start_time=start_date.timestamp(), end_time=end_date.timestamp())["items"])
+    for post in posts:
+        print(post["text"])
 
-    # получаем список групп, в которых состоит пользователь
-    groups = vk.groups.get()
+# Создание графического интерфейса
+root = tk.Tk()
+root.title('VK Search')
+root.geometry('400x400')
 
-    # создаем список для хранения результатов
-    results = []
-
-    # проходимся по каждой группе и ищем комментарии с заданным текстом
-    for group_id in groups['items']:
-        # получаем список постов в группе
-        posts = vk.wall.get(owner_id=-group_id, count=100)
-
-        # проходимся по каждому посту и ищем комментарии с заданным текстом
-        for post in posts['items']:
-            # получаем список комментариев к посту
-            comments = vk.wall.getComments(owner_id=-group_id, post_id=post['id'], count=100)
-
-            # проходимся по каждому комментарию и ищем заданный текст
-            for comment in comments['items']:
-                if search_text in comment['text']:
-                    # добавляем результаты в список
-                    profile_url = 'https://vk.com/id{}'.format(comment['from_id'])
-                    post_url = 'https://vk.com/wall{}_{}'.format(-group_id, post['id'])
-                    results.append((profile_url, post_url))
-
-    # сохраняем результаты в CSV файл
-    with open('results.csv', 'w', newline='', encoding='utf-8') as file:
-        writer = csv.writer(file)
-        writer.writerow(['Profile URL', 'Post URL'])
-        writer.writerows(results)
-
-    result_label.config(text='Результаты сохранены в файл results.csv')
-
-def on_paste(event):
-    search_text_entry.insert(tk.INSERT, window.clipboard_get())
-
-# создаем окно
-window = tk.Tk()
-window.title('Поиск комментариев')
-window.geometry('400x200')
-
-# создаем элементы интерфейса
-login_label = tk.Label(window, text='Логин')
-login_entry = tk.Entry(window)
-login_entry.bind("<Control-v>", on_paste)
-password_label = tk.Label(window, text='Пароль')
-password_entry = tk.Entry(window, show='*')
-password_entry.bind("<Control-v>", on_paste)
-search_text_label = tk.Label(window, text='Искомый текст')
-search_text_entry = tk.Entry(window)
-search_text_entry.bind("<Control-v>", on_paste)
-search_button = tk.Button(window, text='Поиск', command=start_search)
-result_label = tk.Label(window, text='')
-
-# размещаем элементы интерфейса на окне
+# Поля ввода логина и пароля
+login_label = tk.Label(root, text='Login')
 login_label.pack()
+login_entry = tk.Entry(root)
 login_entry.pack()
-password_label.pack()
-password_entry.pack()
-search_text_label.pack()
-search_text_entry.pack()
-search_button.pack()
-result_label.pack()
 
-# запускаем главный цикл окна
-window.mainloop()
+password_label = tk.Label(root, text='Password')
+password_label.pack()
+password_entry = tk.Entry(root, show='*')
+password_entry.pack()
+
+# Кнопка авторизации
+auth_button = tk.Button(root, text='Authorize', command=lambda: vk_auth(login_entry.get(), password_entry.get()))
+auth_button.pack()
+
+# Поле ввода поиска и кнопка поиска
+search_label = tk.Label(root, text='Search')
+search_label.pack()
+search_entry = tk.Entry(root)
+search_entry.pack()
+
+start_date_label = tk.Label(root, text='Start Date')
+start_date_label.pack()
+start_date_entry = tk.Entry(root)
+start_date_entry.pack()
+
+end_date_label = tk.Label(root, text='End Date')
+end_date_label.pack()
+end_date_entry = tk.Entry(root)
+end_date_entry.pack()
+
+search_button = tk.Button(root, text='Search', command=lambda: search(vk, group_checkboxes, search_entry.get(), datetime.strptime(start_date_entry.get(), '%d.%m.%Y'), datetime.strptime(end_date_entry.get(), '%d.%m.%Y')))
+search_button.pack()
+
+root.mainloop()
