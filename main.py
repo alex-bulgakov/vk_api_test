@@ -39,23 +39,18 @@ def search_and_save(vk, group_checkboxes, query, start_date):
                 if post_date >= start_date:
                     post_id = post["id"]
                     if post['comments']['count'] > 0:
-
                         comments = vk.wall.getComments(owner_id=-group_id, post_id=post_id, count=100, sort='desc',
                                                        preview_length=0, extended=1)
-
                         for comment in comments['items']:
                             if query in comment['text']:
                                 posts.append({
                                     'post_id': post_id,
+                                    'id': comment['id'],
                                     'from_id': comment['from_id'],
                                     'text': comment['text']
                                 })
-
-                        # print('Пост ' + post['text'])
-
-                        # comments = json.dumps(comments, ensure_ascii=False)
-                        # comments = json.loads(comments)
-                        # posts.extend([comment['thread'] for comment in comments['items']])
+                    else:
+                        break
                 else:
                     flag = False
                     break
@@ -67,10 +62,9 @@ def search_and_save(vk, group_checkboxes, query, start_date):
         writer = csv.writer(file)
         writer.writerow(['Post URL', 'User URL', 'Comment Text'])
         for post in posts:
-            for comment in post.get("comments", {}).get("items", []):
-                writer.writerow([f"https://vk.com/wall-{post['from_id']}_{post['id']}",
-                                 f"https://vk.com/id{comment['from_id']}",
-                                 comment['text']])
+            writer.writerow([f"https://vk.com/wall-{group_id}_{post['post_id']}",
+                             f"https://vk.com/id{post['from_id']}",
+                             post['text']])
 
 
 
@@ -124,7 +118,7 @@ start_date_entry.pack()
 # end_date_entry.pack()
 
 # search_button = tk.Button(root, text='Search', command=lambda: search_and_save(vk, group_checkboxes, search_entry.get(), datetime.strptime(start_date_entry.get(), '%d.%m.%Y'), datetime.strptime(end_date_entry.get(), '%d.%m.%Y')))
-search_button = tk.Button(root, text='Search', command=lambda: search_and_save(vk, group_checkboxes, 'Пиши', datetime.strptime('01.04.2023', '%d.%m.%Y')))
+search_button = tk.Button(root, text='Search', command=lambda: search_and_save(vk, group_checkboxes, 'что', datetime.strptime('01.03.2023', '%d.%m.%Y')))
 search_button.pack()
 
 root.mainloop()
