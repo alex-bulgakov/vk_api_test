@@ -29,18 +29,25 @@ def search_and_save(vk, group_checkboxes, query, start_date, end_date):
     selected_group_ids = [checkbox[1] for checkbox in group_checkboxes if checkbox[2].get()]
     posts = []
     for group_id in selected_group_ids:
-        response = vk.wall.search(owner_id=-group_id, query='', count=100, start_time=start_date.timestamp(),
-                                  end_time=end_date.timestamp())
-        items = response["items"]
-        for post in items:
-            post_id = post["id"]
-            if post['comments']['count'] > 0:
-                print('Пост ' + post['text'])
-                comments = vk.wall.getComments(owner_id=-group_id, post_id=post_id, count=100, sort='desc',
-                                               preview_length=0, extended=1)
-                comments = json.dumps(comments, ensure_ascii=False)
-                comments = json.loads(comments)
-                posts.extend([comment['thread'] for comment in comments['items']])
+        offset = 0
+        while True:
+            response = vk.wall.get(owner_id=-group_id, count=100, offset=offset, extended=1)
+            items = response["items"]
+            for post in items:
+                post_date = datetime.fromtimestamp(post["date"])
+                if post_date >= start_date and post_date <= end_date:
+                    post_id = post["id"]
+                    if post['comments']['count'] > 0:
+                        print('Пост ' + post['text'])
+                        comments = vk.wall.getComments(owner_id=-group_id, post_id=post_id, count=100, sort='desc',
+                                                       preview_length=0, extended=1)
+                        comments = json.dumps(comments, ensure_ascii=False)
+                        comments = json.loads(comments)
+                        posts.extend([comment['thread'] for comment in comments['items']])
+            offset += 100
+            if offset >= response["count"]:
+                break
+
     with open('search_results.csv', mode='w', encoding='utf-8', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(['Post URL', 'User URL', 'Comment Text'])
@@ -87,7 +94,7 @@ end_date_entry = tk.Entry(root)
 end_date_entry.pack()
 
 # search_button = tk.Button(root, text='Search', command=lambda: search_and_save(vk, group_checkboxes, search_entry.get(), datetime.strptime(start_date_entry.get(), '%d.%m.%Y'), datetime.strptime(end_date_entry.get(), '%d.%m.%Y')))
-search_button = tk.Button(root, text='Search', command=lambda: search_and_save(vk, group_checkboxes, 'Фотограф', datetime.strptime('01.03.2023', '%d.%m.%Y'), datetime.strptime('01.04.2023', '%d.%m.%Y')))
+search_button = tk.Button(root, text='Search', command=lambda: search_and_save(vk, group_checkboxes, 'Фотограф', datetime.strptime('01.04.2023', '%d.%m.%Y'), datetime.strptime('01.04.2023', '%d.%m.%Y')))
 search_button.pack()
 
 root.mainloop()
