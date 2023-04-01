@@ -25,17 +25,18 @@ def vk_auth(login, password):
         print(error_msg)
 
 # Функция поиска и сохранения результата в CSV файл
-def search_and_save(vk, group_checkboxes, query, start_date, end_date):
+def search_and_save(vk, group_checkboxes, query, start_date):
     selected_group_ids = [checkbox[1] for checkbox in group_checkboxes if checkbox[2].get()]
     posts = []
     for group_id in selected_group_ids:
         offset = 0
-        while True:
+        flag = True
+        while flag:
             response = vk.wall.get(owner_id=-group_id, count=100, offset=offset, extended=1)
             items = response["items"]
             for post in items:
                 post_date = datetime.fromtimestamp(post["date"])
-                if post_date >= start_date and post_date <= end_date:
+                if post_date >= start_date:
                     post_id = post["id"]
                     if post['comments']['count'] > 0:
                         print('Пост ' + post['text'])
@@ -44,6 +45,9 @@ def search_and_save(vk, group_checkboxes, query, start_date, end_date):
                         comments = json.dumps(comments, ensure_ascii=False)
                         comments = json.loads(comments)
                         posts.extend([comment['thread'] for comment in comments['items']])
+                else:
+                    flag = False
+                    break
             offset += 100
             if offset >= response["count"]:
                 break
@@ -56,6 +60,21 @@ def search_and_save(vk, group_checkboxes, query, start_date, end_date):
                 writer.writerow([f"https://vk.com/wall-{post['from_id']}_{post['id']}",
                                  f"https://vk.com/id{comment['from_id']}",
                                  comment['text']])
+
+
+
+def check_post_date(post):
+    post_date = datetime.fromtimestamp(post["date"])
+    if post_date >= start_date and post_date <= end_date:
+        post_id = post["id"]
+        if post['comments']['count'] > 0:
+            print('Пост ' + post['text'])
+            comments = vk.wall.getComments(owner_id=-group_id, post_id=post_id, count=100, sort='desc',
+                                           preview_length=0, extended=1)
+            comments = json.dumps(comments, ensure_ascii=False)
+            comments = json.loads(comments)
+            posts.extend([comment['thread'] for comment in comments['items']])
+
 
 # Создание графического интерфейса
 root = tk.Tk()
@@ -83,18 +102,18 @@ search_label.pack()
 search_entry = tk.Entry(root)
 search_entry.pack()
 
-start_date_label = tk.Label(root, text='Start Date')
+start_date_label = tk.Label(root, text='Date')
 start_date_label.pack()
 start_date_entry = tk.Entry(root)
 start_date_entry.pack()
 
-end_date_label = tk.Label(root, text='End Date')
-end_date_label.pack()
-end_date_entry = tk.Entry(root)
-end_date_entry.pack()
+# end_date_label = tk.Label(root, text='End Date')
+# end_date_label.pack()
+# end_date_entry = tk.Entry(root)
+# end_date_entry.pack()
 
 # search_button = tk.Button(root, text='Search', command=lambda: search_and_save(vk, group_checkboxes, search_entry.get(), datetime.strptime(start_date_entry.get(), '%d.%m.%Y'), datetime.strptime(end_date_entry.get(), '%d.%m.%Y')))
-search_button = tk.Button(root, text='Search', command=lambda: search_and_save(vk, group_checkboxes, 'Фотограф', datetime.strptime('01.04.2023', '%d.%m.%Y'), datetime.strptime('01.04.2023', '%d.%m.%Y')))
+search_button = tk.Button(root, text='Search', command=lambda: search_and_save(vk, group_checkboxes, 'Фотограф', datetime.strptime('01.04.2023', '%d.%m.%Y')))
 search_button.pack()
 
 root.mainloop()
