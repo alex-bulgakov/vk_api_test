@@ -29,7 +29,7 @@ def search_and_save(vk, group_checkboxes, query, start_date, end_date):
     selected_group_ids = [checkbox[1] for checkbox in group_checkboxes if checkbox[2].get()]
     posts = []
     for group_id in selected_group_ids:
-        response = vk.wall.search(owner_id=-group_id, query=query, count=100, start_time=start_date.timestamp(),
+        response = vk.wall.search(owner_id=-group_id, query='', count=100, start_time=start_date.timestamp(),
                                   end_time=end_date.timestamp())
         items = response["items"]
         for post in items:
@@ -87,7 +87,7 @@ end_date_entry = tk.Entry(root)
 end_date_entry.pack()
 
 # search_button = tk.Button(root, text='Search', command=lambda: search_and_save(vk, group_checkboxes, search_entry.get(), datetime.strptime(start_date_entry.get(), '%d.%m.%Y'), datetime.strptime(end_date_entry.get(), '%d.%m.%Y')))
-search_button = tk.Button(root, text='Search', command=lambda: search_and_save(vk, group_checkboxes, 'Фотограф', datetime.strptime('01.03.2022', '%d.%m.%Y'), datetime.strptime('01.03.2022', '%d.%m.%Y')))
+search_button = tk.Button(root, text='Search', command=lambda: search_and_save(vk, group_checkboxes, 'Фотограф', datetime.strptime('01.03.2023', '%d.%m.%Y'), datetime.strptime('01.04.2023', '%d.%m.%Y')))
 search_button.pack()
 
 root.mainloop()
