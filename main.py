@@ -2,6 +2,7 @@ import csv
 import tkinter as tk
 import vk_api
 from datetime import datetime, timedelta
+import json
 
 # Функция авторизации в VK API
 
@@ -34,10 +35,13 @@ def search_and_save(vk, group_checkboxes, query, start_date, end_date):
         for post in items:
             post_id = post["id"]
             if post['comments']['count'] > 0:
+                print('Пост ' + post['text'])
                 comments = vk.wall.getComments(owner_id=-group_id, post_id=post_id, count=100, sort='desc',
                                                preview_length=0, extended=1)
-                posts.extend([comment['thread'] for comment in comments])
-    with open('search_results.csv', mode='w', encoding='utf-8') as file:
+                comments = json.dumps(comments, ensure_ascii=False)
+                comments = json.loads(comments)
+                posts.extend([comment['thread'] for comment in comments['items']])
+    with open('search_results.csv', mode='w', encoding='utf-8', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(['Post URL', 'User URL', 'Comment Text'])
         for post in posts:
