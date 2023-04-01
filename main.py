@@ -1,3 +1,4 @@
+import csv
 import tkinter as tk
 import vk_api
 from datetime import datetime, timedelta
@@ -22,14 +23,21 @@ def vk_auth(login, password):
     except vk_api.AuthError as error_msg:
         print(error_msg)
 
-# Функция поиска
-def search(vk, group_checkboxes, query, start_date, end_date):
+# Функция поиска и сохранения результата в CSV файл
+def search_and_save(vk, group_checkboxes, query, start_date, end_date):
     selected_group_ids = [checkbox[1] for checkbox in group_checkboxes if checkbox[2].get()]
     posts = []
     for group_id in selected_group_ids:
         posts.extend(vk.wall.search(owner_id=-group_id, query=query, count=100, start_time=start_date.timestamp(), end_time=end_date.timestamp())["items"])
-    for post in posts:
-        print(post["text"])
+    with open('search_results.csv', mode='w', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        writer.writerow(['Post URL', 'User URL', 'Comment Text'])
+        for post in posts:
+            comments = post.get('comments', {}).get('items', [])
+            for comment in comments:
+                writer.writerow([f"https://vk.com/wall-{post['owner_id']}_{post['id']}",
+                                 f"https://vk.com/id{comment['from_id']}",
+                                 comment['text']])
 
 # Создание графического интерфейса
 root = tk.Tk()
@@ -67,7 +75,7 @@ end_date_label.pack()
 end_date_entry = tk.Entry(root)
 end_date_entry.pack()
 
-search_button = tk.Button(root, text='Search', command=lambda: search(vk, group_checkboxes, search_entry.get(), datetime.strptime(start_date_entry.get(), '%d.%m.%Y'), datetime.strptime(end_date_entry.get(), '%d.%m.%Y')))
+search_button = tk.Button(root, text='Search', command=lambda: search_and_save(vk, group_checkboxes, search_entry.get(), datetime.strptime(start_date_entry.get(), '%d.%m.%Y'), datetime.strptime(end_date_entry.get(), '%d.%m.%Y')))
 search_button.pack()
 
 root.mainloop()
