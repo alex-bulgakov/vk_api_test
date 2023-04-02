@@ -1,4 +1,5 @@
 import csv
+import re
 from datetime import datetime
 import os
 import sys
@@ -23,6 +24,7 @@ vk = None
 group_checkboxes = []
 status_text = ''
 file_name = 'result.csv'
+stop = False
 
 
 def set_status(msg):
@@ -74,18 +76,23 @@ def vk_auth(login, password):
 
 
 def search_group(vk, group_id, queries, start_date, posts):
+    result = []
     try:
         set_status('Ищем в группе - ' + str(get_group_name(group_id)))
     except:
         pass
     offset = 0
+    global flag
     flag = True
     is_pinned = False
-    response = vk.wall.get(owner_id=-group_id, count=100, offset=offset, extended=1)
-    items = response["items"]
+
 
     while flag:
+        if stop: return
+        response = vk.wall.get(owner_id=-group_id, count=100, offset=offset, extended=1)
+        items = response["items"]
         for post in items:
+            if stop: return
             post_date = datetime.fromtimestamp(post["date"])
 
             is_pinned = False
@@ -101,12 +108,14 @@ def search_group(vk, group_id, queries, start_date, posts):
                                                    preview_length=0, extended=1)
                     for comment in comments['items']:
                         for query in queries:
+                            if stop:
+                                return []
                             if query.strip() in comment['text']:
                                 try:
                                     set_status('Нашли в комменте - ' + str(comment['text'][0:30]))
                                 except:
                                     pass
-                                posts.append({
+                                result.append({
                                     'group_id' : group_id,
                                     'post_id': post_id,
                                     'id': comment['id'],
@@ -121,10 +130,11 @@ def search_group(vk, group_id, queries, start_date, posts):
         if offset >= response["count"]:
             break
 
-    return posts
+    return result
 
 
 def search_and_save(vk, group_checkboxes, query, start_date):
+    global stop
     set_status('Начинаем поиск')
     if start_date == '':
         now = datetime.now()
@@ -136,29 +146,27 @@ def search_and_save(vk, group_checkboxes, query, start_date):
     selected_group_ids = [checkbox[1] for checkbox in group_checkboxes if checkbox[2].get()]
     posts = []
 
-    # # Создание потоков для каждой выбранной группы
-    # threads = []
-    # for group_id in selected_group_ids:
-    #     thread = threading.Thread(target=search_group, args=(vk, group_id, queries, start_date, posts))
-    #     threads.append(thread)
-    #     thread.start()
-    #
-    # # Ожидание завершения всех потоков
-    # for thread in threads:
-    #     thread.join()
-
     for group_id in selected_group_ids:
+        if stop:
+            set_status('Поиск прерван')
+            stop = False
+            return
         posts += search_group(vk, group_id, queries, start_date, posts)
 
     set_status('Записываем результат в файл')
-    with open('search_results.csv', mode='a', encoding='cp1251', newline='') as f:
+    with open(file_name, mode='w', encoding='cp1251', newline='') as f:
         msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, os.path.getsize(file_name))
         writer = csv.writer(f)
         writer.writerow(['Post URL', 'User URL', 'Comment Text'])
         for post in posts:
+            post_str = re.sub(r"[^a-zA-ZА-Яа-я0-9]+", " ", post['text'])
             writer.writerow([f"https://vk.com/wall-{post['group_id']}_{post['post_id']}",
                              f"https://vk.com/id{post['from_id']}",
-                             post['text']])
+                             post_str[0:100]])
+            if stop:
+                set_status('Поиск прерван')
+                stop = False
+                return
     set_status('Готово')
 
 def start_search():
@@ -166,6 +174,10 @@ def start_search():
     search_thread = threading.Thread(target=search_and_save, args=(vk, group_checkboxes, search_entry.get(), start_date_entry.get()))
     search_thread.start()
 
+
+def stop_thread():
+    global stop
+    stop = True
 
 # Создание графического интерфейса
 
@@ -248,6 +260,10 @@ search_entry.grid(row=3, column=1)
 # search_button = tk.Button(inner_frame, text='Поиск', command=lambda: start_search(vk, group_checkboxes, search_entry.get(), start_date_entry.get()), bg=canvas_color, fg=button_color)
 search_button = tk.Button(inner_frame, text='Поиск', command=start_search, bg=canvas_color, fg=button_color)
 search_button.grid(row=4, column=1)
+# search_button1 = tk.Button(inner_frame, text='Поиск не в фоне', command=lambda: search_and_save(vk, group_checkboxes, search_entry.get(), start_date_entry.get()), bg=canvas_color, fg=button_color)
+# search_button1.grid(row=5, column=1)
+search_button1 = tk.Button(inner_frame, text='Остановить поиск', command=stop_thread, bg=canvas_color, fg=button_color)
+search_button1.grid(row=5, column=1)
 
 
 # поле с информацией о ходе процесса
