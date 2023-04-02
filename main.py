@@ -37,6 +37,49 @@ def vk_auth(login, password):
         print(error_msg)
 
 
+# def search_group(vk, group_id, queries, start_date, posts):
+#     offset = 0
+#     flag = True
+#     is_pinned = False
+#     response = vk.wall.get(owner_id=-group_id, count=100, offset=offset, extended=1)
+#     items = response["items"]
+#
+#     while flag:
+#         for post in items:
+#             post_date = datetime.fromtimestamp(post["date"])
+#
+#             is_pinned = False
+#             try:
+#                 is_pinned = post['is_pinned'] == 1
+#             except:
+#                 pass
+#
+#             if post_date >= start_date or is_pinned:
+#                 post_id = post["id"]
+#                 if post['comments']['count'] > 0:
+#                     comments = vk.wall.getComments(owner_id=-group_id, post_id=post_id, count=100, sort='desc',
+#                                                    preview_length=0, extended=1)
+#                     for comment in comments['items']:
+#                         for query in queries:
+#                             if query.strip() in comment['text']:
+#                                 posts.append({
+#                                     'group_id' : group_id,
+#                                     'post_id': post_id,
+#                                     'id': comment['id'],
+#                                     'from_id': comment['from_id'],
+#                                     'text': comment['text']
+#                                 })
+#
+#             else:
+#                 flag = False
+#                 break
+#         offset += 100
+#         if offset >= response["count"]:
+#             break
+#
+#         return posts
+
+
 def search_group(vk, group_id, queries, start_date, posts):
     offset = 0
     flag = True
@@ -77,7 +120,8 @@ def search_group(vk, group_id, queries, start_date, posts):
         if offset >= response["count"]:
             break
 
-        return posts
+    return posts
+
 
 def search_and_save(vk, group_checkboxes, query, start_date):
     if start_date == '':
