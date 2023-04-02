@@ -28,56 +28,15 @@ def vk_auth(login, password):
         vk_session.auth()
         vk = vk_session.get_api()
         groups = vk.groups.get(extended=1, fields="name")["items"]
+        check_row = 0
         for group in groups:
             group_checkboxes.append((group["name"], group["id"], tk.BooleanVar()))
         for checkbox in group_checkboxes:
-            tk.Checkbutton(root, text=checkbox[0], variable=checkbox[2]).pack()
+            tk.Checkbutton(root, text=checkbox[0], variable=checkbox[2]).grid(row=check_row, column=2, sticky='w')
+            check_row += 1
         print('Авторизация успешна')
     except vk_api.AuthError as error_msg:
         print(error_msg)
-
-
-# def search_group(vk, group_id, queries, start_date, posts):
-#     offset = 0
-#     flag = True
-#     is_pinned = False
-#     response = vk.wall.get(owner_id=-group_id, count=100, offset=offset, extended=1)
-#     items = response["items"]
-#
-#     while flag:
-#         for post in items:
-#             post_date = datetime.fromtimestamp(post["date"])
-#
-#             is_pinned = False
-#             try:
-#                 is_pinned = post['is_pinned'] == 1
-#             except:
-#                 pass
-#
-#             if post_date >= start_date or is_pinned:
-#                 post_id = post["id"]
-#                 if post['comments']['count'] > 0:
-#                     comments = vk.wall.getComments(owner_id=-group_id, post_id=post_id, count=100, sort='desc',
-#                                                    preview_length=0, extended=1)
-#                     for comment in comments['items']:
-#                         for query in queries:
-#                             if query.strip() in comment['text']:
-#                                 posts.append({
-#                                     'group_id' : group_id,
-#                                     'post_id': post_id,
-#                                     'id': comment['id'],
-#                                     'from_id': comment['from_id'],
-#                                     'text': comment['text']
-#                                 })
-#
-#             else:
-#                 flag = False
-#                 break
-#         offset += 100
-#         if offset >= response["count"]:
-#             break
-#
-#         return posts
 
 
 def search_group(vk, group_id, queries, start_date, posts):
@@ -173,37 +132,53 @@ def check_post_date(post):
 # Создание графического интерфейса
 root = tk.Tk()
 root.title('VK Поиск')
-root.geometry('400x400')
+
+# Определяем размер экрана
+screen_width = root.winfo_screenwidth()
+screen_height = root.winfo_screenheight()
+
+# Вычисляем размер окна
+window_width = screen_width // 2
+window_height = screen_height // 2
+
+# Вычисляем координаты окна, чтобы оно отображалось по центру экрана
+x_position = screen_width // 4
+y_position = screen_height // 4
+
+
+root.geometry("{}x{}+{}+{}".format(window_width, window_height, x_position, y_position))
 
 # Поля ввода логина и пароля
 login_label = tk.Label(root, text='Логин')
-login_label.pack()
+login_label.grid(row=0, column=0)
 login_entry = tk.Entry(root)
-login_entry.pack()
+login_entry.grid(row=0, column=1)
 
 password_label = tk.Label(root, text='Пароль')
-password_label.pack()
+password_label.grid(row=1, column=0)
 password_entry = tk.Entry(root, show='*')
-password_entry.pack()
+password_entry.grid(row=1, column=1)
 
 # Кнопка авторизации
 auth_button = tk.Button(root, text='Войти', command=lambda: vk_auth(login_entry.get(), password_entry.get()))
-auth_button.pack()
+auth_button.grid(row=0, column=2, sticky='w')
+
+start_date_label = tk.Label(root, text='Искать до даты')
+start_date_label.grid(row=2, column=0)
+start_date_entry = tk.Entry(root)
+start_date_entry.grid(row=2, column=1)
 
 # Поле ввода поиска и кнопка поиска
 search_label = tk.Label(root, text='Поиск')
-search_label.pack()
+search_label.grid(row=3, column=1)
 search_entry = tk.Entry(root)
-search_entry.pack()
+search_entry.grid(row=3, column=1)
 
-start_date_label = tk.Label(root, text='Искать до даты')
-start_date_label.pack()
-start_date_entry = tk.Entry(root)
-start_date_entry.pack()
+
 
 
 
 search_button = tk.Button(root, text='Поиск', command=lambda: search_and_save(vk, group_checkboxes, search_entry.get(), start_date_entry.get()))
-search_button.pack()
+search_button.grid(row=4, column=1)
 
 root.mainloop()
