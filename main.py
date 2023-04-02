@@ -9,8 +9,17 @@ import json
 
 # Функция авторизации в VK API
 
+debug_flag = False
+
+
+def debug_msg(msg):
+    if debug_flag:
+        print(msg)
+
+
 vk = None
 group_checkboxes = []
+
 
 def vk_auth(login, password):
     if login == '' or password == '':
@@ -32,9 +41,9 @@ def vk_auth(login, password):
         for group in groups:
             group_checkboxes.append((group["name"], group["id"], tk.BooleanVar()))
         for checkbox in group_checkboxes:
-            tk.Checkbutton(root, text=checkbox[0], variable=checkbox[2]).grid(row=check_row, column=2, sticky='w')
+            tk.Checkbutton(inner_frame, text=checkbox[0], variable=checkbox[2], bg=canvas_color, fg=button_color).grid(row=check_row, column=2, sticky='w', padx=5)
             check_row += 1
-        print('Авторизация успешна')
+        debug_msg('Авторизация успешна')
     except vk_api.AuthError as error_msg:
         print(error_msg)
 
@@ -130,6 +139,11 @@ def check_post_date(post):
 
 
 # Создание графического интерфейса
+
+button_bg_color = '#101010'
+button_color = 'white'
+canvas_color = '#2d2d2d'
+
 root = tk.Tk()
 root.title('VK Поиск')
 
@@ -145,40 +159,67 @@ window_height = screen_height // 2
 x_position = screen_width // 4
 y_position = screen_height // 4
 
-
 root.geometry("{}x{}+{}+{}".format(window_width, window_height, x_position, y_position))
+print('Root ' + str(root.winfo_width()) + 'x' + str(root.winfo_height()))
+
+
+# # создаем фрейм для canvas и полосы прокрутки
+frame = tk.Frame(root, bg='#222222')
+
+
+frame.grid_rowconfigure(0, weight=1)
+frame.grid_columnconfigure(0, weight=1)
+frame.grid(row=0, column=0, sticky="nsew")
+frame.pack(expand=True, fill='both')
+
+# создаем canvas и добавляем его на фрейм
+canvas = tk.Canvas(frame, bg=canvas_color)
+canvas.grid(row=0, column=0, sticky="nsew")
+
+canvas.config(width=frame.winfo_width(), height=frame.winfo_height())
+
+
+# добавляем полосу прокрутки на фрейм
+scrollbar = tk.Scrollbar(frame, orient="vertical", command=canvas.yview)
+scrollbar.grid(row=0, column=1, sticky="ns")
+canvas.configure(yscrollcommand=scrollbar.set)
+scrollbar.set(1, 1)
+
+# создаем фрейм в canvas
+inner_frame = tk.Frame(canvas, bg=canvas_color, padx=10, pady=10)
+canvas.create_window((5, 5), window=inner_frame, anchor="nw")
 
 # Поля ввода логина и пароля
-login_label = tk.Label(root, text='Логин')
+login_label = tk.Label(inner_frame, text='Логин', bg=canvas_color, fg=button_color)
 login_label.grid(row=0, column=0)
-login_entry = tk.Entry(root)
+login_entry = tk.Entry(inner_frame)
 login_entry.grid(row=0, column=1)
 
-password_label = tk.Label(root, text='Пароль')
+password_label = tk.Label(inner_frame, text='Пароль', bg=canvas_color, fg=button_color)
 password_label.grid(row=1, column=0)
-password_entry = tk.Entry(root, show='*')
+password_entry = tk.Entry(inner_frame, show='*')
 password_entry.grid(row=1, column=1)
 
 # Кнопка авторизации
-auth_button = tk.Button(root, text='Войти', command=lambda: vk_auth(login_entry.get(), password_entry.get()))
+auth_button = tk.Button(inner_frame, text='Войти', command=lambda: vk_auth(login_entry.get(), password_entry.get()), bg=canvas_color, fg=button_color)
 auth_button.grid(row=0, column=2, sticky='w')
 
-start_date_label = tk.Label(root, text='Искать до даты')
+start_date_label = tk.Label(inner_frame, text='Искать до даты', bg=canvas_color, fg=button_color)
 start_date_label.grid(row=2, column=0)
-start_date_entry = tk.Entry(root)
+start_date_entry = tk.Entry(inner_frame)
 start_date_entry.grid(row=2, column=1)
 
 # Поле ввода поиска и кнопка поиска
-search_label = tk.Label(root, text='Поиск')
+search_label = tk.Label(inner_frame, text='Поиск', bg=canvas_color, fg=button_color)
 search_label.grid(row=3, column=1)
-search_entry = tk.Entry(root)
+search_entry = tk.Entry(inner_frame)
 search_entry.grid(row=3, column=1)
 
-
-
-
-
-search_button = tk.Button(root, text='Поиск', command=lambda: search_and_save(vk, group_checkboxes, search_entry.get(), start_date_entry.get()))
+search_button = tk.Button(inner_frame, text='Поиск', command=lambda: search_and_save(vk, group_checkboxes, search_entry.get(), start_date_entry.get()), bg=canvas_color, fg=button_color)
 search_button.grid(row=4, column=1)
+
+# устанавливаем минимальный размер фрейма с виджетами
+inner_frame.update_idletasks()
+canvas.config(scrollregion=canvas.bbox("all"))
 
 root.mainloop()
