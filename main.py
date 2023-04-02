@@ -1,17 +1,19 @@
 import csv
+from datetime import datetime
 import os
 import sys
 import threading
+import time
 import tkinter as tk
+import msvcrt
+
+import requests
 import vk_api
-from datetime import datetime, timedelta
+
 import json
 
-# Функция авторизации в VK API
 
 debug_flag = False
-
-
 def debug_msg(msg):
     if debug_flag:
         print(msg)
@@ -19,14 +21,36 @@ def debug_msg(msg):
 
 vk = None
 group_checkboxes = []
+status_text = ''
+file_name = 'result.csv'
 
 
+def set_status(msg):
+    status.configure(text=msg)
+
+def update_label(label):
+    while True:
+        label.configure(text=status_text)
+        time.sleep(1)
+
+
+# Функция получения названия группы по ID
+def get_group_name(group_id):
+    for key in group_checkboxes:
+        if group_id in key:
+            return key[0]
+
+# Функция авторизации в VK API
 def vk_auth(login, password):
+
+    #Создадим файл для записи результата
+    with open(file_name, 'w+') as f:
+        f.write('')
+
+
     if login == '' or password == '':
         # получаем путь к директории, содержащей исполняемый файл
         dir_path = os.path.dirname(os.path.abspath(sys.executable))
-
-
 
         with open(dir_path +'\\auth.txt', 'r') as f:
             login = f.readline().strip()
@@ -41,14 +65,19 @@ def vk_auth(login, password):
         for group in groups:
             group_checkboxes.append((group["name"], group["id"], tk.BooleanVar()))
         for checkbox in group_checkboxes:
-            tk.Checkbutton(inner_frame, text=checkbox[0], variable=checkbox[2], bg=canvas_color, fg=button_color).grid(row=check_row, column=2, sticky='w', padx=5)
+            tk.Checkbutton(inner_frame, text=checkbox[0], variable=checkbox[2], bg=canvas_color, fg='#888888').grid(row=check_row, column=2, sticky='w', padx=5)
             check_row += 1
-        debug_msg('Авторизация успешна')
+
+        set_status('Авторизация успешна')
     except vk_api.AuthError as error_msg:
         print(error_msg)
 
 
 def search_group(vk, group_id, queries, start_date, posts):
+    try:
+        set_status('Ищем в группе - ' + str(get_group_name(group_id)))
+    except:
+        pass
     offset = 0
     flag = True
     is_pinned = False
@@ -73,6 +102,10 @@ def search_group(vk, group_id, queries, start_date, posts):
                     for comment in comments['items']:
                         for query in queries:
                             if query.strip() in comment['text']:
+                                try:
+                                    set_status('Нашли в комменте - ' + str(comment['text'][0:30]))
+                                except:
+                                    pass
                                 posts.append({
                                     'group_id' : group_id,
                                     'post_id': post_id,
@@ -92,6 +125,7 @@ def search_group(vk, group_id, queries, start_date, posts):
 
 
 def search_and_save(vk, group_checkboxes, query, start_date):
+    set_status('Начинаем поиск')
     if start_date == '':
         now = datetime.now()
         start_date = datetime(now.year, now.month, now.day)
@@ -116,26 +150,21 @@ def search_and_save(vk, group_checkboxes, query, start_date):
     for group_id in selected_group_ids:
         posts += search_group(vk, group_id, queries, start_date, posts)
 
-    with open('search_results.csv', mode='w', encoding='utf-8', newline='') as file:
-
-        writer = csv.writer(file)
+    set_status('Записываем результат в файл')
+    with open('search_results.csv', mode='a', encoding='cp1251', newline='') as f:
+        msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, os.path.getsize(file_name))
+        writer = csv.writer(f)
         writer.writerow(['Post URL', 'User URL', 'Comment Text'])
         for post in posts:
             writer.writerow([f"https://vk.com/wall-{post['group_id']}_{post['post_id']}",
                              f"https://vk.com/id{post['from_id']}",
                              post['text']])
+    set_status('Готово')
 
-
-def check_post_date(post):
-    post_date = datetime.fromtimestamp(post["date"])
-    if post_date >= start_date and post_date <= end_date:
-        post_id = post["id"]
-        if post['comments']['count'] > 0:
-            comments = vk.wall.getComments(owner_id=-group_id, post_id=post_id, count=100, sort='desc',
-                                           preview_length=0, extended=1)
-            comments = json.dumps(comments, ensure_ascii=False)
-            comments = json.loads(comments)
-            posts.extend([comment['thread'] for comment in comments['items']])
+def start_search():
+    # Создаем поток для выполнения функции search_and_save
+    search_thread = threading.Thread(target=search_and_save, args=(vk, group_checkboxes, search_entry.get(), start_date_entry.get()))
+    search_thread.start()
 
 
 # Создание графического интерфейса
@@ -204,6 +233,7 @@ password_entry.grid(row=1, column=1)
 auth_button = tk.Button(inner_frame, text='Войти', command=lambda: vk_auth(login_entry.get(), password_entry.get()), bg=canvas_color, fg=button_color)
 auth_button.grid(row=0, column=2, sticky='w')
 
+# Дата поиска
 start_date_label = tk.Label(inner_frame, text='Искать до даты', bg=canvas_color, fg=button_color)
 start_date_label.grid(row=2, column=0)
 start_date_entry = tk.Entry(inner_frame)
@@ -215,8 +245,18 @@ search_label.grid(row=3, column=1)
 search_entry = tk.Entry(inner_frame)
 search_entry.grid(row=3, column=1)
 
-search_button = tk.Button(inner_frame, text='Поиск', command=lambda: search_and_save(vk, group_checkboxes, search_entry.get(), start_date_entry.get()), bg=canvas_color, fg=button_color)
+# search_button = tk.Button(inner_frame, text='Поиск', command=lambda: start_search(vk, group_checkboxes, search_entry.get(), start_date_entry.get()), bg=canvas_color, fg=button_color)
+search_button = tk.Button(inner_frame, text='Поиск', command=start_search, bg=canvas_color, fg=button_color)
 search_button.grid(row=4, column=1)
+
+
+# поле с информацией о ходе процесса
+status = tk.Label(frame, bg=canvas_color, fg='white')
+status.grid(row=1, column=0, sticky=tk.S+tk.W)
+root.rowconfigure(1, weight=1)
+
+thread = threading.Thread(target=update_label, args=status)
+thread.start()
 
 # устанавливаем минимальный размер фрейма с виджетами
 inner_frame.update_idletasks()
