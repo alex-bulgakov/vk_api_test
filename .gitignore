@@ -1,0 +1,5 @@
+.idea
+.dist/auth.txt
+.dist/results
+.dist/result.csv
+.dist/vk_config.v2.json
