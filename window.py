@@ -2,8 +2,10 @@ import threading
 import time
 import tkinter as tk
 
+from PIL import Image
+
 from auth import vk_auth
-from lib import start_search, stop_thread, get_groups
+from lib import start_search, stop_thread, get_groups, is_searching
 from status import get_status, set_status
 
 vk = None
@@ -92,6 +94,7 @@ def draw_window():
     password_entry = tk.Entry(inner_frame, show='*')
     password_entry.grid(row=1, column=1)
 
+
     # Кнопка авторизации
     auth_button = tk.Button(inner_frame, text='Войти', command=lambda: push_auth(login_entry.get(), password_entry.get(), inner_frame, canvas_color, '#888888'), bg=canvas_color, fg=button_color)
     auth_button.grid(row=0, column=2, sticky='w')
@@ -113,6 +116,8 @@ def draw_window():
     search_button.grid(row=4, column=1)
     # search_button1 = tk.Button(inner_frame, text='Поиск не в фоне', command=lambda: search_and_save(vk, group_checkboxes, search_entry.get(), start_date_entry.get()), bg=canvas_color, fg=button_color)
     # search_button1.grid(row=5, column=1)
+
+    # кнопка остановить поиск
     search_button1 = tk.Button(inner_frame, text='Остановить поиск', command=stop_thread, bg=canvas_color, fg=button_color)
     search_button1.grid(row=5, column=1)
 
