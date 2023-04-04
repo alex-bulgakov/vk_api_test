@@ -10,6 +10,8 @@ from serialize_api import get_api
 from status import set_status
 
 stop = False
+
+lock = threading.Lock()
 is_searching = False
 
 def set_stop(set):
@@ -84,7 +86,8 @@ def search_group(vk, group_id, queries, start_date, posts):
 
 def search_and_save(vk, group_checkboxes, query, start_date):
     global is_searching
-    is_searching = True
+    with lock:
+        is_searching = True
     if query == '':
         set_status('Не задана строка поиска')
         return
@@ -136,7 +139,8 @@ def search_and_save(vk, group_checkboxes, query, start_date):
                 return
 
     set_status('Готово')
-    is_searching = False
+    with lock:
+        is_searching = False
 
 
 
@@ -144,6 +148,9 @@ def start_search(vk, groups, search, start):
     # Создаем поток для выполнения функции search_and_save
     search_thread = threading.Thread(target=search_and_save, args=(vk, groups, search, start))
     search_thread.start()
+
+
+
 
 
 def get_groups(vk):
