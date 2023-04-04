@@ -1,5 +1,5 @@
 from vk_api import vk_api
-
+from status import set_status
 from read_config import get_config
 
 vk = None
@@ -14,22 +14,20 @@ def vk_auth(login, password):
             login = config[0]
             password = config[1]
         return get_api(login, password)
+
     else:
         return get_api(login, password)
 
 
 def get_api(login,password):
-    result = {'result': None, 'status': ''}
     try:
         vk_session = vk_api.VkApi(login, password)
         vk_session.auth()
         api = vk_session.get_api()
-        result['result'] = api
-        result['status'] = 'Авторизация успешна'
-        return result
+        set_status('Авторизация успешна')
+        return api
     except vk_api.AuthError as error_msg:
-        result['status'] = error_msg
-        return result
+        set_status(error_msg)
 
 
 if __name__ == '__main__':

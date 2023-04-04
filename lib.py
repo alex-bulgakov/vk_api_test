@@ -1,10 +1,16 @@
-import datetime
+import csv
+import os
+import re
+from datetime import datetime
+import msvcrt
 import threading
 
 from read_config import get_config
 from serialize_api import get_api
+from status import set_status
 
 stop = False
+
 
 def set_stop(set):
     global stop
@@ -12,15 +18,14 @@ def set_stop(set):
 
 # Функция получения названия группы по ID
 def get_group_name(group_id):
-    for key in group_checkboxes:
+    for key in get_groups():
         if group_id in key:
             return key[0]
 
 # Функция авторизации в VK API
 
 
-def search_group(group_id, queries, start_date, posts):
-    vk = get_api()
+def search_group(vk, group_id, queries, start_date, posts):
     result = []
     try:
         set_status('Ищем в группе - ' + str(get_group_name(group_id)))
@@ -30,7 +35,6 @@ def search_group(group_id, queries, start_date, posts):
     global flag
     flag = True
     is_pinned = False
-
 
     while flag:
         if stop: return
@@ -79,6 +83,9 @@ def search_group(group_id, queries, start_date, posts):
 
 
 def search_and_save(vk, group_checkboxes, query, start_date):
+    if query == '':
+        set_status('Не задана строка поиска')
+        return
     config = get_config()
     file_name = 'result.csv'
     try:
@@ -106,6 +113,11 @@ def search_and_save(vk, group_checkboxes, query, start_date):
         posts += search_group(vk, group_id, queries, start_date, posts)
 
     set_status('Записываем результат в файл')
+    folder_name = './results'
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
+    file_name = os.path.join(folder_name, file_name)
+
     with open(file_name, mode='w', encoding='cp1251', newline='') as f:
         msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, os.path.getsize(file_name))
         writer = csv.writer(f)
@@ -122,9 +134,10 @@ def search_and_save(vk, group_checkboxes, query, start_date):
     set_status('Готово')
 
 
-def start_search(vk):
+
+def start_search(vk, groups, search, start):
     # Создаем поток для выполнения функции search_and_save
-    search_thread = threading.Thread(target=search_and_save, args=(vk, group_checkboxes, search_entry.get(), start_date_entry.get()))
+    search_thread = threading.Thread(target=search_and_save, args=(vk, groups, search, start))
     search_thread.start()
 
 

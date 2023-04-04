@@ -4,28 +4,13 @@ import tkinter as tk
 
 from auth import vk_auth
 from lib import start_search, stop_thread, get_groups
+from status import get_status, set_status
 
 vk = None
-
-
-status = ''
-
-
-def set_status(msg):
-    global status
-    status = msg
-
-
-def update_label(label):
-    label.configure(text='status')
-    # global status
-    # while True:
-    #     label.configure(text='status')
-    #     time.sleep(1)
-
+group_checkboxes = []
 
 def draw_checkboxes(groups, inner_frame, bg_color, fg_color):
-    group_checkboxes = []
+    global group_checkboxes
     check_row = 0
     for group in groups:
         group_checkboxes.append((group["name"], group["id"], tk.BooleanVar()))
@@ -37,9 +22,10 @@ def draw_checkboxes(groups, inner_frame, bg_color, fg_color):
 
 def push_auth(login, password, frame, bg_color, fg_color):
     global vk
-    vk_auth_result = vk_auth(login, password)
-    vk = vk_auth_result['result']
-    set_status(vk_auth_result['status'])
+    if vk:
+        set_status('Авторизация уже выполнена')
+        return
+    vk = vk_auth(login, password)
     draw_checkboxes(get_groups(vk), frame, bg_color, fg_color)
 
 
@@ -123,14 +109,17 @@ def draw_window():
     search_entry.grid(row=3, column=1)
 
     # search_button = tk.Button(inner_frame, text='Поиск', command=lambda: start_search(vk, group_checkboxes, search_entry.get(), start_date_entry.get()), bg=canvas_color, fg=button_color)
-    search_button = tk.Button(inner_frame, text='Поиск', command=start_search, bg=canvas_color, fg=button_color)
+    search_button = tk.Button(inner_frame, text='Поиск', command=lambda: start_search(vk, group_checkboxes, search_entry.get(), start_date_entry.get()), bg=canvas_color, fg=button_color)
     search_button.grid(row=4, column=1)
     # search_button1 = tk.Button(inner_frame, text='Поиск не в фоне', command=lambda: search_and_save(vk, group_checkboxes, search_entry.get(), start_date_entry.get()), bg=canvas_color, fg=button_color)
     # search_button1.grid(row=5, column=1)
     search_button1 = tk.Button(inner_frame, text='Остановить поиск', command=stop_thread, bg=canvas_color, fg=button_color)
     search_button1.grid(row=5, column=1)
 
-
+    def update_label(label):
+        while True:
+            label.configure(text=get_status())
+            time.sleep(1)
 
     # поле с информацией о ходе процесса
     status_label = tk.Label(frame, bg=canvas_color, fg='white')
