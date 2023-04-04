@@ -2,12 +2,17 @@ import threading
 import time
 import tkinter as tk
 
+from PIL import Image, ImageTk
+
 from auth import vk_auth
-from lib import start_search, stop_thread, get_groups
+from lib import stop_thread, get_groups, is_searching, lock, start_search
 from status import get_status, set_status
 
 vk = None
 group_checkboxes = []
+search_gif = None
+gif_item = None
+
 
 def draw_checkboxes(groups, inner_frame, bg_color, fg_color):
     global group_checkboxes
@@ -27,6 +32,9 @@ def push_auth(login, password, frame, bg_color, fg_color):
         return
     vk = vk_auth(login, password)
     draw_checkboxes(get_groups(vk), frame, bg_color, fg_color)
+
+
+
 
 
 def draw_window():
@@ -92,6 +100,7 @@ def draw_window():
     password_entry = tk.Entry(inner_frame, show='*')
     password_entry.grid(row=1, column=1)
 
+
     # Кнопка авторизации
     auth_button = tk.Button(inner_frame, text='Войти', command=lambda: push_auth(login_entry.get(), password_entry.get(), inner_frame, canvas_color, '#888888'), bg=canvas_color, fg=button_color)
     auth_button.grid(row=0, column=2, sticky='w')
@@ -109,12 +118,20 @@ def draw_window():
     search_entry.grid(row=3, column=1)
 
     # search_button = tk.Button(inner_frame, text='Поиск', command=lambda: start_search(vk, group_checkboxes, search_entry.get(), start_date_entry.get()), bg=canvas_color, fg=button_color)
-    search_button = tk.Button(inner_frame, text='Поиск', command=lambda: start_search(vk, group_checkboxes, search_entry.get(), start_date_entry.get()), bg=canvas_color, fg=button_color)
+    search_button = tk.Button(inner_frame, text='Поиск', command=lambda: push_searh(), bg=canvas_color, fg=button_color, )
     search_button.grid(row=4, column=1)
     # search_button1 = tk.Button(inner_frame, text='Поиск не в фоне', command=lambda: search_and_save(vk, group_checkboxes, search_entry.get(), start_date_entry.get()), bg=canvas_color, fg=button_color)
     # search_button1.grid(row=5, column=1)
+
+    # кнопка остановить поиск
     search_button1 = tk.Button(inner_frame, text='Остановить поиск', command=stop_thread, bg=canvas_color, fg=button_color)
     search_button1.grid(row=5, column=1)
+
+    def push_searh():
+        start_search(vk, group_checkboxes, search_entry.get(), start_date_entry.get())
+        gif_thread = threading.Thread(target=animate_gif, args=['searching.gif'])
+        gif_thread.start()
+
 
     def update_label(label):
         while True:
@@ -128,6 +145,54 @@ def draw_window():
 
     thread = threading.Thread(target=update_label, args=[status_label])
     thread.start()
+
+    gif_canvas = tk.Canvas(inner_frame, width=100, height=100, bg=canvas_color, highlightthickness=0)
+    gif_canvas.grid(row=7, column=1)
+
+    def animate_gif(image_file):
+        # открываем gif файл и получаем первый кадр
+        gif = Image.open(image_file)
+        current_frame = 0
+        frames = gif.n_frames
+
+        stop_gif_flag = True
+
+        # пока есть кадры
+        while True:
+            if get_status() == 'Готово' or get_status() == 'Поиск прерван':
+                break
+            gif_canvas.grid(row=7, column=1)
+            # получаем текущий кадр
+            gif.seek(current_frame)
+            frame = gif.convert('RGBA')
+            frame = frame.resize((gif_canvas.winfo_width(), gif_canvas.winfo_height()), Image.ANTIALIAS)
+            photo = ImageTk.PhotoImage(frame)
+
+            # отображаем текущий кадр на холсте
+            gif_canvas.create_image(0, 0, image=photo, anchor=tk.NW)
+            gif_canvas.update()
+
+            # переходим к следующему кадру
+            current_frame += 1
+            if current_frame == frames:
+                current_frame = 0
+
+            # задержка между кадрами
+            try:
+                delay = gif.info['duration']
+                canvas.after(delay)
+            except KeyError:
+                canvas.after(100)
+
+
+
+            # проверка на остановку анимации
+            # if not canvas.animating:
+            #     break
+
+
+
+
 
     # устанавливаем минимальный размер фрейма с виджетами
     inner_frame.update_idletasks()
