@@ -60,14 +60,14 @@ def search_group(vk, group_id, queries, start_date, posts):
                     comments = vk.wall.getComments(owner_id=-group_id, post_id=post_id, count=100, sort='desc',
                                                    preview_length=0, extended=1)
                     for comment in comments['items']:
+                        comment_text = re.sub(r"[^a-zA-ZА-Яа-я0-9]+", " ", comment['text']).lower().strip()
+
                         for query in queries:
+                            query_text = query.lower().strip()
                             if stop:
                                 return []
-                            if query.strip() in comment['text']:
-                                try:
-                                    set_status('Нашли в комменте - ' + str(comment['text'][0:30]))
-                                except:
-                                    pass
+                            if query_text in comment_text:
+                                set_status('Нашли в комменте - ' + comment_text[0:30])
                                 result.append({
                                     'group_id' : group_id,
                                     'post_id': post_id,

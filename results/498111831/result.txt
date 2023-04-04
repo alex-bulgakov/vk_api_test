@@ -1,0 +1,2 @@
+Post URL,User URL,Comment URL,Comment Text
+https://vk.com/wall-121834265_944692,https://vk.com/id498111831,https://vk.com/wall-121834265_944692?reply=944693,Отличное расположение приятный персонал 
