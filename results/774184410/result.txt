@@ -1,2 +1,0 @@
-Post URL,User URL,Comment URL,Comment Text
-https://vk.com/wall-87534193_97539,https://vk.com/id774184410,https://vk.com/wall-87534193_97539?reply=97540,Скажите это правой руке Романа когда он играет галопом
