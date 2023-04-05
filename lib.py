@@ -69,7 +69,7 @@ def search_group(vk, group_id, queries, start_date, posts):
                             if query_text in comment_text:
                                 set_status('Нашли в комменте - ' + comment_text[0:30])
                                 result.append({
-                                    'group_id' : group_id,
+                                    'group_id': group_id,
                                     'post_id': post_id,
                                     'id': comment['id'],
                                     'from_id': comment['from_id'],
