@@ -25,7 +25,7 @@ def get_css_selector(url):
 
 def make_screenshots():
     chrome_options = Options()
-    chrome_options.headless = True
+    # chrome_options.headless = True
     # Get the current user's home directory path
     home_dir = os.path.expanduser("~")
     # Concatenate the Chrome user data directory path with the home directory path
