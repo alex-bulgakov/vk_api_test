@@ -5,7 +5,7 @@ import tkinter as tk
 from PIL import Image, ImageTk
 
 from auth import vk_auth
-from lib import stop_thread, get_groups, is_searching, lock, start_search
+from lib import stop_thread, get_groups, start_search
 from status import get_status, set_status
 
 vk = None
@@ -129,6 +129,7 @@ def draw_window():
 
     def push_searh():
         start_search(vk, group_checkboxes, search_entry.get(), start_date_entry.get())
+
         gif_thread = threading.Thread(target=animate_gif, args=['searching.gif'])
         gif_thread.start()
 

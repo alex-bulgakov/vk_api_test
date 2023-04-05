@@ -1,10 +1,5 @@
-from auth import vk_auth
-from lib import get_groups
 from status import set_status
 from window import draw_window
-from selenium import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
-
 
 set_status('Текущий статус')
 draw_window()

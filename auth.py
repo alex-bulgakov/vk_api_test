@@ -1,4 +1,3 @@
-import pickle
 import tkinter as tk
 import webbrowser
 
@@ -32,6 +31,9 @@ def get_api(login, password):
 
         with open('access_token', 'w') as file:
             file.write(vk_session.token['access_token'])
+        # with open('auth_url', 'w') as file:
+        #     file.write(vk_session.пуе)
+
         set_status('Авторизация успешна')
         return api
     except capcha_e as e:

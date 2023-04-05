@@ -4,11 +4,10 @@ import re
 from datetime import datetime
 import msvcrt
 import threading
-
 import requests
 import vk_api
-
 from read_config import get_config
+from screens import make_screenshots
 from status import set_status
 
 stop = False
@@ -120,7 +119,7 @@ def search_and_save(vk, group_checkboxes, query, start_date):
         else:
             posts += search_group(vk, group_id, queries, start_date, posts)
 
-    set_status('Записываем результат в файл')
+    set_status('Записываем результаты в файлы')
     file_name = set_dir('./results', 'result.txt')
 
 
@@ -142,6 +141,8 @@ def search_and_save(vk, group_checkboxes, query, start_date):
                 return
         save_html(comment_url, './results/' + str(post['from_id']) + '/' + post_str[0:50].replace(' ', '_') + '.html')
 
+    set_status('Делаем скриншоты')
+    make_screenshots()
     set_status('Готово')
     with lock:
         is_searching = False
