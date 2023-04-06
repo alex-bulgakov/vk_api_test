@@ -1,5 +1,6 @@
 import os
 from selenium import webdriver
+from selenium.common import WebDriverException
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from status import get_status
@@ -35,6 +36,7 @@ def make_screenshots():
     chrome_options.add_argument('--window-size=1920,1080')
 
     driver = webdriver.Chrome(options=chrome_options)
+
     current_dir = os.getcwd()
     current_dir = current_dir.replace('\\', '/') + '/results/'
 

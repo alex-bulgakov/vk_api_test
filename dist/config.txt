@@ -1,3 +1,3 @@
-login +79182993975
-password A8kyrccs5
+login логин
+password пароль
 filename result.txt

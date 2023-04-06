@@ -67,13 +67,16 @@ def search_group(vk, group_id, queries, start_date, posts):
                                 return []
                             if query_text in comment_text:
                                 set_status('Нашли в комменте - ' + comment_text[0:30])
-                                result.append({
+                                result_line = {
                                     'group_id': group_id,
                                     'post_id': post_id,
                                     'id': comment['id'],
                                     'from_id': comment['from_id'],
                                     'text': comment['text']
-                                })
+                                }
+                                if not (result_line in result):
+                                    result.append(result_line)
+
 
             else:
                 flag = False
@@ -107,7 +110,7 @@ def search_and_save(vk, group_checkboxes, query, start_date):
     else:
         start_date = datetime.strptime(start_date, '%d.%m.%Y')
 
-    queries = query.split(',')
+    queries = query.split('\n')
     selected_group_ids = [checkbox[1] for checkbox in group_checkboxes if checkbox[2].get()]
     posts = []
 
@@ -152,6 +155,7 @@ def start_search(vk, groups, search, start):
     # Создаем поток для выполнения функции search_and_save
     search_thread = threading.Thread(target=search_and_save, args=(vk, groups, search, start))
     search_thread.start()
+    # search_and_save(vk, groups, search, start)
 
 
 def get_groups(vk):

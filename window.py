@@ -114,8 +114,9 @@ def draw_window():
     # Поле ввода поиска и кнопка поиска
     search_label = tk.Label(inner_frame, text='Поиск', bg=canvas_color, fg=button_color)
     search_label.grid(row=3, column=1)
-    search_entry = tk.Entry(inner_frame)
-    search_entry.grid(row=3, column=1)
+    # search_entry = tk.Entry(inner_frame)
+    search_entry = tk.Text(inner_frame, height=5, width=5)
+    search_entry.grid(row=3, column=1, sticky=tk.NSEW)
 
     # search_button = tk.Button(inner_frame, text='Поиск', command=lambda: start_search(vk, group_checkboxes, search_entry.get(), start_date_entry.get()), bg=canvas_color, fg=button_color)
     search_button = tk.Button(inner_frame, text='Поиск', command=lambda: push_searh(), bg=canvas_color, fg=button_color, )
@@ -128,7 +129,7 @@ def draw_window():
     search_button1.grid(row=5, column=1)
 
     def push_searh():
-        start_search(vk, group_checkboxes, search_entry.get(), start_date_entry.get())
+        start_search(vk, group_checkboxes, search_entry.get("1.0", "end-1c"), start_date_entry.get())
 
         gif_thread = threading.Thread(target=animate_gif, args=['searching.gif'])
         gif_thread.start()
