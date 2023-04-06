@@ -64,12 +64,13 @@ def search_group(vk, group_id, queries, start_date, posts):
                     for comment in comments['items']:
                         # ищем в комментах к посту
                         comment_text = re.sub(r"[^a-zA-ZА-Яа-я0-9]+", " ", comment['text']).lower().strip()
+                        comment_text_words = comment_text.split()
 
                         for query in queries:
                             query_text = query.lower().strip()
                             if stop:
                                 return []
-                            if query_text in comment_text:
+                            if query_text in comment_text_words:
                                 set_status('Нашли в комменте - ' + comment_text[0:30])
                                 result_line = {
                                     'group_id': group_id,
@@ -90,6 +91,14 @@ def search_group(vk, group_id, queries, start_date, posts):
 
     return result
 
+def search_word(key_word, string):
+    words = string.split()
+
+    for w in words:
+        if w.stripe() == key_word:
+            return True
+        else:
+            return False
 
 def search_and_save(vk, group_checkboxes, query, start_date):
     global driver
