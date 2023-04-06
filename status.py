@@ -6,4 +6,4 @@ def set_status(msg):
 
 def get_status():
     with open('status.txt', 'r') as f:
-        return f.readline()
+        return f.readline().encode('cp1251')
