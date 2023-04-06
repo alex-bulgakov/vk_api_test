@@ -6,14 +6,10 @@ from selenium.webdriver.common.by import By
 from status import get_status
 
 
-def make_screen(path_to_file, url, css, driver):
+def make_screen(path_to_file, url, driver):
     driver.get(url)
-
-    if css != '':
-        element = driver.find_element(By.CSS_SELECTOR, css)
-        element.screenshot(path_to_file)
-    else:
-        driver.save_screenshot(path_to_file)
+    driver.save_screenshot(path_to_file)
+    # driver.quit()
 
 
 def get_css_selector(url):
@@ -24,9 +20,30 @@ def get_css_selector(url):
     return result
 
 
-def make_screenshots():
+# def make_screenshots():
+#
+#     current_dir = os.getcwd()
+#     current_dir = current_dir.replace('\\', '/') + '/results/'
+#
+#     for folder_name in os.listdir(current_dir):
+#         if os.path.isdir(current_dir + folder_name):
+#             result_file_path = current_dir + folder_name + '/result.txt'
+#             if os.path.exists(result_file_path):
+#                 with open(result_file_path, 'r') as result_file:
+#                     for line in result_file.readlines()[1:]:
+#                         if get_status() == 'Поиск прерван':
+#                             driver.quit()
+#                             return
+#                         parts = line.strip().split(',')
+#                         comment = parts[2]
+#                         make_screen(current_dir + folder_name + '/' + parts[3] + '.png', comment, '', driver)
+#                         make_screen(current_dir + folder_name + '/profile.png', parts[1], '', driver)
+#     driver.quit()
+
+
+def get_webdriver():
     chrome_options = Options()
-    # chrome_options.headless = True
+    chrome_options.headless = True
     # Get the current user's home directory path
     home_dir = os.path.expanduser("~")
     # Concatenate the Chrome user data directory path with the home directory path
@@ -36,21 +53,4 @@ def make_screenshots():
     chrome_options.add_argument('--window-size=1920,1080')
 
     driver = webdriver.Chrome(options=chrome_options)
-
-    current_dir = os.getcwd()
-    current_dir = current_dir.replace('\\', '/') + '/results/'
-
-    for folder_name in os.listdir(current_dir):
-        if os.path.isdir(current_dir + folder_name):
-            result_file_path = current_dir + folder_name + '/result.txt'
-            if os.path.exists(result_file_path):
-                with open(result_file_path, 'r') as result_file:
-                    for line in result_file.readlines()[1:]:
-                        if get_status() == 'Поиск прерван':
-                            driver.quit()
-                            return
-                        parts = line.strip().split(',')
-                        comment = parts[2]
-                        make_screen(current_dir + folder_name + '/' + parts[3] + '.png', comment, '', driver)
-                        make_screen(current_dir + folder_name + '/profile.png', parts[1], '', driver)
-    driver.quit()
+    return driver

@@ -1,16 +1,18 @@
-import csv
+import msvcrt
 import os
 import re
-from datetime import datetime
-import msvcrt
 import threading
+from datetime import datetime
+
 import requests
 import vk_api
-from read_config import get_config
-from screens import make_screenshots
+
+from screens import make_screen, get_webdriver
 from status import set_status
 
 stop = False
+
+driver = None
 
 lock = threading.Lock()
 is_searching = False
@@ -35,12 +37,12 @@ def search_group(vk, group_id, queries, start_date, posts):
     except:
         pass
     offset = 0
-    global flag
     flag = True
     is_pinned = False
 
     while flag:
-        if stop: return
+        if stop:
+            return
         response = vk.wall.get(owner_id=-group_id, count=100, offset=offset, extended=1)
         items = response["items"]
         for post in items:
@@ -54,11 +56,13 @@ def search_group(vk, group_id, queries, start_date, posts):
                 pass
 
             if post_date >= start_date or is_pinned:
+                # ищем в посте
                 post_id = post["id"]
                 if post['comments']['count'] > 0:
                     comments = vk.wall.getComments(owner_id=-group_id, post_id=post_id, count=100, sort='desc',
                                                    preview_length=0, extended=1)
                     for comment in comments['items']:
+                        # ищем в комментах к посту
                         comment_text = re.sub(r"[^a-zA-ZА-Яа-я0-9]+", " ", comment['text']).lower().strip()
 
                         for query in queries:
@@ -75,9 +79,8 @@ def search_group(vk, group_id, queries, start_date, posts):
                                     'text': comment['text']
                                 }
                                 if not (result_line in result):
-                                    result.append(result_line)
-
-
+                                    set_status('Записываем коммент в файлы')
+                                    save_comment(result_line)
             else:
                 flag = False
                 break
@@ -89,18 +92,14 @@ def search_group(vk, group_id, queries, start_date, posts):
 
 
 def search_and_save(vk, group_checkboxes, query, start_date):
+    global driver
+    driver = get_webdriver()
     global is_searching
     with lock:
         is_searching = True
     if query == '':
         set_status('Не задана строка поиска')
         return
-    config = get_config()
-    file_name = 'result.csv'
-    try:
-        file_name = config[2]
-    except:
-        pass
 
     global stop
     set_status('Начинаем поиск')
@@ -120,35 +119,57 @@ def search_and_save(vk, group_checkboxes, query, start_date):
             stop = False
             return
         else:
-            posts += search_group(vk, group_id, queries, start_date, posts)
+            search_group(vk, group_id, queries, start_date, posts)
 
-    set_status('Записываем результаты в файлы')
-    file_name = set_dir('./results', 'result.txt')
+    driver.quit()
 
 
-    for post in posts:
-        post_url = f"https://vk.com/wall-{post['group_id']}_{post['post_id']}"
-        user_url = f"https://vk.com/id{post['from_id']}"
-        comment_url = f"https://vk.com/wall-{post['group_id']}_{post['post_id']}?reply={post['id']}"
-        post_str = re.sub(r"[^a-zA-ZА-Яа-я0-9]+", " ", post['text'])
+    # file_name = set_dir('./results', 'result.txt')
 
-        file_name = set_dir('./results/' + str(post['from_id']), 'result.txt')
-        with open(file_name, mode='w', encoding='cp1251', newline='') as f:
-            msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, os.path.getsize(file_name))
-            writer = csv.writer(f)
-            writer.writerow(['Post URL', 'User URL', 'Comment URL', 'Comment Text'])
-            writer.writerow([post_url, user_url, comment_url, post_str])
-            if stop:
-                set_status('Поиск прерван')
-                stop = False
-                return
-        save_html(comment_url, './results/' + str(post['from_id']) + '/' + post_str[0:50].replace(' ', '_') + '.html')
-
-    set_status('Делаем скриншоты')
-    make_screenshots()
+    # for post in posts:
+    #     save_comment(post)
+    #     if stop:
+    #         set_status('Поиск прерван')
+    #         stop = False
+    #         return
+    #
+    # set_status('Делаем скриншоты')
+    # make_screenshots()
     set_status('Готово')
     with lock:
         is_searching = False
+
+
+def save_comment(post):
+
+    post_url = f"https://vk.com/wall-{post['group_id']}_{post['post_id']}"
+    user_url = f"https://vk.com/id{post['from_id']}"
+    comment_url = f"https://vk.com/wall-{post['group_id']}_{post['post_id']}?reply={post['id']}"
+    post_str = re.sub(r"[^a-zA-ZА-Яа-я0-9]+", " ", post['text'])
+
+    set_status('Записываем коммент - ' + post_str[0: 50])
+
+    path = './results/' + str(post['from_id']) + '/'
+    file_name = path + 'result.txt'
+    result_line = (post_url + ',' + user_url + ',' + comment_url + ',' + post_str + '\n')
+
+    if not os.path.exists(path):
+        os.makedirs(path)
+    try:
+        with open(file_name, mode='r', encoding='cp1251', newline='') as f:
+            file_lines = f.readlines()
+    except FileNotFoundError:
+        file_lines = []
+        print('Файл еще не создан, создаем')
+
+    with open(file_name, mode='w', encoding='cp1251', newline='') as f:
+        msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, os.path.getsize(file_name))
+        if not (result_line in file_lines):
+            f.write(result_line)
+    save_html(comment_url, './results/' + str(post['from_id']) + '/' + post_str[0:50].replace(' ', '_') + '.html')
+    set_status('Делаем скрин коммента - ' + post_str[0:50])
+    make_screen('./results/' + str(post['from_id']) + '/' + post_str[0:30].strip() + '.png', comment_url, driver)
+    make_screen('./results/' + str(post['from_id']) + '/profile.png', user_url, driver)
 
 
 def start_search(vk, groups, search, start):
