@@ -11,6 +11,8 @@ def make_screen(path_to_file, url, driver):
     driver.save_screenshot(path_to_file)
     # driver.quit()
 
+#write for loop
+
 
 def get_css_selector(url):
     digits_and_underscore = ''.join(filter(lambda x: x.isdigit() or x == '_' or x == '=', url))
